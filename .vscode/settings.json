@@ -1,0 +1,10 @@
+{
+    // formatter
+    "editor.formatOnSave": true,
+    // need "Black Formatter", "Flake8"
+    "[python]": {
+        "editor.formatOnSave": true
+    },
+    "flake8.args": ["--ignore=E501"],
+    "workbench.colorTheme": "Default Dark Modern",
+}
