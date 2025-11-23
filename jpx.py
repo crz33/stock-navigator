@@ -23,11 +23,7 @@ def download_jpx_data() -> pd.DataFrame:
     df = df.drop(columns=["規模区分"])
 
     # marketをプライム、スタンダード、グロースのみにする
-    df = df[
-        df["market"].isin(
-            ["プライム（内国株式）", "スタンダード（内国株式）", "プライム（内国株式）"]
-        )
-    ]
+    df = df[df["market"].isin(["プライム（内国株式）", "スタンダード（内国株式）", "グロース（内国株式）"])]
 
     # marketの値を変更
     df["market"] = df["market"].replace(
@@ -44,6 +40,15 @@ def download_jpx_data() -> pd.DataFrame:
         df.to_sql("stocks", conn, if_exists="replace", index=False)
     finally:
         conn.close()
+
+
+def load() -> pd.DataFrame:
+    conn = sqlite3.connect("db.sqlite3")
+    try:
+        df = pd.read_sql("SELECT * FROM stocks", conn)
+    finally:
+        conn.close()
+    return df
 
 
 if __name__ == "__main__":
