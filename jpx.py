@@ -33,7 +33,7 @@ def download_jpx_data() -> pd.DataFrame:
     # DBに書き込む
     conn = sqlite3.connect("db.sqlite3")
     try:
-        df.to_sql("銘柄一覧", conn, if_exists="replace", index=False)
+        df.to_sql("銘柄マスタ", conn, if_exists="replace", index=False)
     finally:
         conn.close()
 
@@ -41,11 +41,17 @@ def download_jpx_data() -> pd.DataFrame:
 def load() -> pd.DataFrame:
     conn = sqlite3.connect("db.sqlite3")
     try:
-        df = pd.read_sql("SELECT * FROM 銘柄一覧", conn)
+        df = pd.read_sql("SELECT * FROM 銘柄マスタ", conn)
     finally:
         conn.close()
     return df
 
 
 if __name__ == "__main__":
-    sys.exit(download_jpx_data())
+
+    if len(sys.argv) > 1 and sys.argv[1] == "update":
+        print("JPXデータを更新中...")
+        download_jpx_data()
+        print("JPXデータの更新が完了しました。")
+    else:
+        print("usage: python jpx.py update")
