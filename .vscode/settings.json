@@ -1,10 +1,16 @@
 {
     // formatter
     "editor.formatOnSave": true,
-    // need "Black Formatter", "Flake8"
     "[python]": {
         "editor.formatOnSave": true
     },
-    "flake8.args": ["--ignore=E501"],
-    "workbench.colorTheme": "Default Dark Modern",
+    "black-formatter.args": [
+        "--line-length",
+        "150"
+    ],
+    "flake8.args": [
+        "--ignore=E501",
+        "--max-line-length=150"
+    ],
+    "workbench.colorTheme": "Default Dark Modern"
 }
