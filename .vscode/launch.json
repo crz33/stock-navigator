@@ -13,6 +13,19 @@
             "args": [
                 "${command:pickArgs}"
             ]
+        },
+        {
+            "name": "Python Debugger: Streamlit",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "console": "integratedTerminal",
+            "args": [
+                "run",
+                "${workspaceFolder}/app/home.py"
+            ],
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
