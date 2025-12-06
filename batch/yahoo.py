@@ -21,12 +21,15 @@ def update_price_data(stocks: pd.DataFrame) -> None:
     conn = sqlite3.connect("db.sqlite3")
 
     # 各銘柄コードについて株価データを取得
-    for code in stocks["コード"].tolist():
+    for code in ["N225"] + stocks["コード"].tolist():
 
         print(f"コードを処理中: {code}")
 
         # Yahoo Finance のティッカーオブジェクトを取得
-        ticker = yf.Ticker(f"{code}.T")
+        if code == "N225":
+            ticker = yf.Ticker("^N225")
+        else:
+            ticker = yf.Ticker(f"{code}.T")
 
         # 株価テーブルが存在するか確認
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='株価データ';")
