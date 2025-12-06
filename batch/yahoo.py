@@ -8,12 +8,75 @@ import en2ja
 to_ja = en2ja.to_ja
 
 
+def update_price_data(stocks: pd.DataFrame) -> None:
+    """
+    Yahoo Finance から株価データを取得して SQLite に保存します。
+
+    Args:
+        stocks (pd.DataFrame): 銘柄コードの DataFrame。'コード' 列を含む必要があります。
+    """
+
+    print("Yahoo Finance から株価データを取得中...")
+
+    conn = sqlite3.connect("db.sqlite3")
+
+    # 各銘柄コードについて株価データを取得
+    for code in stocks["コード"].tolist():
+
+        print(f"コードを処理中: {code}")
+
+        # Yahoo Finance のティッカーオブジェクトを取得
+        ticker = yf.Ticker(f"{code}.T")
+
+        # 株価テーブルが存在するか確認
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='株価データ';")
+        table_exists = cursor.fetchone() is not None
+        if table_exists:
+            existing_dates = pd.read_sql(f"SELECT max(日付) as 日付 FROM 株価データ WHERE コード = '{code}'", conn)["日付"].tolist()
+        else:
+            existing_dates = []
+
+        if len(existing_dates) > 0 and existing_dates[0] is not None:
+            latest_date = max(existing_dates)
+            print(f"既存データの最新日付: {latest_date}")
+            # 既存データの最新日付以降のデータを取得
+            df = ticker.history(start=latest_date)
+            # 最新日付のデータは重複する可能性があるため削除
+            df = df[df.index > latest_date]
+        else:
+            # 既存データがない場合は5年分のデータを取得
+            print("株価データが存在しません。5年分のデータを取得します。")
+            df = ticker.history(period="5y")
+
+        # インデックスを日付列に変換
+        df = df.reset_index()
+
+        # Date 列を日付型に変換
+        df["Date"] = pd.to_datetime(df["Date"]).dt.date
+
+        # Date, Open, High, Low, Close, Volume 列のみ抽出
+        df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
+
+        # Date, Open, High, Low, Close, Volume を日本語に変換
+        df = df.rename(columns={"Date": "日付", "Open": "始値", "High": "高値", "Low": "安値", "Close": "終値", "Volume": "出来高"})
+
+        # 銘柄コードの列を追加
+        df["コード"] = code
+
+        # インデックスをコード、日付に設定
+        df = df.set_index(["コード", "日付"]).reset_index()
+
+        # 株価データテーブルに追加
+        df.to_sql("株価データ", conn, if_exists="append", index=False)
+
+
 def update_financial_data(stocks: pd.DataFrame, from_local: bool = False) -> None:
     """
     Yahoo Finance から各種財務データを取得して SQLite に保存します。
 
     Args:
         stocks (pd.DataFrame): 銘柄コードの DataFrame。'コード' 列を含む必要があります。
+        from_local (bool): ローカルデータから読み込む場合は True。デフォルトは False でYahooから取得します。
     """
 
     # 各種データの初期化
@@ -61,7 +124,12 @@ def update_financial_data(stocks: pd.DataFrame, from_local: bool = False) -> Non
 
 def append_table(df_all: pd.DataFrame, df: pd.DataFrame, code: str) -> None:
     """
-    DataFrame のデータを SQLite のテーブルに追加します。
+    DataFrame のデータを 縦持ちに変換して df_all に追加します。
+
+    Args:
+        df_all (pd.DataFrame): 追加先の DataFrame。最初は None で渡します。
+        df (pd.DataFrame): 追加する DataFrame。
+        code (str): 銘柄コード。
     """
     # データを縦持ちに変換
     df = df.reset_index().melt(id_vars=["index"])
@@ -86,6 +154,14 @@ def append_table(df_all: pd.DataFrame, df: pd.DataFrame, code: str) -> None:
 
 
 def store_data(df: pd.DataFrame, table_name: str, data_type: str) -> None:
+    """
+    DataFrame を SQLite に保存します。
+
+    Args:
+        df (pd.DataFrame): 保存する DataFrame。
+        table_name (str): 保存先のテーブル名。
+        data_type (str): データ種別。列名変換に使用します。
+    """
 
     # 日本語変換辞書を取得
     my_to_ja = to_ja[data_type]
@@ -129,7 +205,7 @@ def rename_columns(table_name: str, data_type: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "update":
+    if len(sys.argv) > 1 and sys.argv[1] == "fin":
         print("JPX銘柄一覧を読み込み中...")
         stocks = jpx.load()
 
@@ -146,5 +222,15 @@ if __name__ == "__main__":
         update_financial_data(stocks, from_local=from_local)
         # create_data()
         print("各種データの更新が完了しました。")
+    elif len(sys.argv) > 1 and sys.argv[1] == "price":
+        print("JPX銘柄一覧を読み込み中...")
+        stocks = jpx.load()
+
+        # 市場・商品区分がプライムのみに絞り込み
+        stocks = stocks[stocks["市場・商品区分"] == "プライム"]
+
+        print("株価データを更新中...")
+        update_price_data(stocks)
+        print("株価データの更新が完了しました。")
     else:
-        print("usage: python yahoo.py update")
+        print("usage: python yahoo.py fin [local] or price")
