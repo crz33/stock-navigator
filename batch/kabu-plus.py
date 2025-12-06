@@ -5,7 +5,7 @@ import sqlite3
 import requests
 import pandas as pd
 import myenv
-import jpx
+import batch.jpx as jpx
 
 """
 以下のデータをkabu+から取得してSQLiteに保存する。
