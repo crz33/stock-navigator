@@ -54,10 +54,13 @@ if page == "N225":
     # データ読み込み
     df = load(["N225"], next(item for item in PERIOD_OPTIONS if item[0] == period)[1])
 
-    # 日経225のグラフを表示
     if df is not None:
+        # 日経225のグラフを表示
         fig = px.line(df, x="日付", y="N225", labels={"日付": "日付", "N225": "日経225"})
-        st.plotly_chart(fig, use_container_width=True)
+        # １周間前から本日までの背景色を赤色にする
+        one_week_ago = pd.Timestamp.now() - pd.DateOffset(weeks=1)
+        fig.add_vrect(x0=one_week_ago, x1=pd.Timestamp.now(), fillcolor="green", opacity=0.1, layer="below", line_width=0)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.warning("データが取得できませんでした。")
 
